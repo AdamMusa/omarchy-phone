@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "izeesoft.omarchy-phone",
+  "name": "Omarchy Phone",
+  "version": "0.2.0",
+  "author": "Adam Moussa Ali",
+  "license": "MIT",
+  "description": "Ruby-powered Android control and iPhone AirPlay mirroring for Omarchy.",
+  "kinds": ["service", "bar-widget", "panel"],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Omarchy Phone",
+    "description": "Discover, connect, mirror, and control nearby phones.",
+    "category": "Network",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
