@@ -8,7 +8,17 @@ mirroring from an Omarchy bar widget and panel.
   <img src="preview.png" alt="Android and iPhone mirrored side by side with Omarchy Phone" width="92%">
 </p>
 
-The preview shows live Android and iPhone sessions opened from Omarchy Phone.
+The preview shows live Android and iPhone sessions running side by side from Omarchy Phone.
+
+## App menu
+
+<p align="center">
+  <img src="docs/images/app-menu-full.png" alt="Omarchy Phone menu with Android and iPhone connected" width="47%">
+  <img src="docs/images/app-menu-connected.png" alt="Omarchy Phone connected-device controls" width="47%">
+</p>
+
+Connected Android and iPhone devices appear automatically in one menu. The available actions and
+capabilities are shown per device, including Android control and iPhone AirPlay status.
 
 ## Android preview
 
@@ -26,7 +36,7 @@ input from Omarchy control the Android device directly.
   <img src="docs/images/iphone-airplay.png" alt="iPhone mirrored over AirPlay with Omarchy Phone" width="47%">
 </p>
 
-The iPhone session is mirrored over AirPlay. Apple does not permit AirPlay receivers to send
+This is a live iPhone session mirrored over AirPlay. Apple does not permit AirPlay receivers to send
 touch or keyboard input back to iOS, so iPhone sessions are view-only.
 
 ## Install
