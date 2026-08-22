@@ -150,7 +150,9 @@ OmarchyUI.plugin do
           text "Action", style: :caption
           button "Pair", id: :pair do
             async do
-              notify_result.call(backend.pair_android(state.pair_address, state.pair_code))
+              result = backend.pair_android(state.pair_address, state.pair_code)
+              state.connect_address = "#{state.pair_address.split(":", 2).first}:" if result.ok
+              notify_result.call(result)
               refresh.call
             end
           end
@@ -166,7 +168,8 @@ OmarchyUI.plugin do
         bind(connection_field, :text) { state.connect_address }
         button "Connect", id: :connect do
           async do
-            notify_result.call(backend.connect(state.connect_address))
+            result = backend.connect(state.connect_address)
+            notify_result.call(result)
             refresh.call
           end
         end

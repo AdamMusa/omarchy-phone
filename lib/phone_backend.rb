@@ -68,7 +68,7 @@ class PhoneBackend
     if !result.ok && result.message.include?("protocol fault")
       Result.new(ok: false, message: "Pairing failed. Open a new pairing-code popup and retry before the code expires.")
     elsif result.ok
-      Result.new(ok: true, message: "Paired. Now connect with the IP and port on the main Wireless debugging screen.")
+      Result.new(ok: true, message: "Pairing complete — not connected yet. Enter the main Wireless debugging address in Step 2.")
     else
       result
     end
