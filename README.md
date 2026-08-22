@@ -4,6 +4,12 @@ The first application built with [Omarchy UI](https://github.com/AdamMusa/omarch
 It provides Android discovery, wireless pairing, scrcpy control, iPhone discovery, and AirPlay
 mirroring from an Omarchy bar widget and panel.
 
+<p align="center">
+  <img src="preview.png" alt="Android and iPhone mirrored side by side with Omarchy Phone" width="92%">
+</p>
+
+The preview shows live Android and iPhone sessions opened from Omarchy Phone.
+
 ## Android preview
 
 <p align="center">
@@ -13,6 +19,15 @@ mirroring from an Omarchy bar widget and panel.
 
 These are real scrcpy sessions launched from Omarchy Phone. Once connected, mouse and keyboard
 input from Omarchy control the Android device directly.
+
+## iPhone preview
+
+<p align="center">
+  <img src="docs/images/iphone-airplay.png" alt="iPhone mirrored over AirPlay with Omarchy Phone" width="47%">
+</p>
+
+The iPhone session is mirrored over AirPlay. Apple does not permit AirPlay receivers to send
+touch or keyboard input back to iOS, so iPhone sessions are view-only.
 
 ## Install
 
