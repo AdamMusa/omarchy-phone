@@ -62,6 +62,18 @@ class PhoneBackend
     result = action(["adb", "connect", address], "Connected to #{address}")
     failed = result.message.downcase.include?("failed to connect") || result.message.downcase.include?("unable to connect")
     result = Result.new(ok: false, message: result.message) if result.ok && failed
+    if result.ok
+      ready = false
+      10.times do
+        state = command(["adb", "-s", address, "get-state"], timeout: 3)
+        if state&.success? && state.stdout.strip == "device"
+          ready = true
+          break
+        end
+        sleep(0.3)
+      end
+      result = Result.new(ok: false, message: "Android connected but its ADB transport is still offline. Wake the phone and retry.") unless ready
+    end
     remember_android_address(address) if result.ok
     result
   end

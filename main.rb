@@ -107,7 +107,21 @@ OmarchyUI.plugin do
                   end
                 elsif device.fetch(:platform) == "Android"
                   button("Connect", id: "connect.#{safe_id}") do
-                    async { notify_result.call(backend.connect(device.fetch(:id))); refresh.call }
+                    async do
+                      result = backend.connect(device.fetch(:id))
+                      if result.ok
+                        connected = backend.snapshot.fetch(:devices).find do |candidate|
+                          candidate.fetch(:platform) == "Android" && candidate.fetch(:connected)
+                        end
+                        options = {
+                          audio: state.audio, screen_off: state.screen_off, fullscreen: state.fullscreen,
+                          max_size: state.max_size, max_fps: state.max_fps, bitrate_mbps: state.bitrate_mbps
+                        }
+                        result = backend.open(connected.transform_keys(&:to_s), options) if connected
+                      end
+                      notify_result.call(result)
+                      refresh.call
+                    end
                   end
                 end
                 if device.fetch(:platform) == "iOS"
