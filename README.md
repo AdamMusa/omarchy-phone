@@ -4,6 +4,16 @@ The first application built with [Omarchy UI](https://github.com/AdamMusa/omarch
 It provides Android discovery, wireless pairing, scrcpy control, iPhone discovery, and AirPlay
 mirroring from an Omarchy bar widget and panel.
 
+## Android preview
+
+<p align="center">
+  <img src="docs/images/android-home.png" alt="Android home screen mirrored with Omarchy Phone" width="47%">
+  <img src="docs/images/android-apps.png" alt="Android application drawer controlled with Omarchy Phone" width="47%">
+</p>
+
+These are real scrcpy sessions launched from Omarchy Phone. Once connected, mouse and keyboard
+input from Omarchy control the Android device directly.
+
 ## Install
 
 ```bash
