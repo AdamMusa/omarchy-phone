@@ -20,6 +20,7 @@ OmarchyUI.plugin do
   state :bitrate_mbps, 8
   state :pair_address, ""
   state :pair_code, ""
+  state :connect_address, ""
 
   refresh = proc do
     snapshot = backend.snapshot
@@ -140,6 +141,19 @@ OmarchyUI.plugin do
         button "Pair", id: :pair do
           async do
             notify_result.call(backend.pair_android(state.pair_address, state.pair_code))
+            refresh.call
+          end
+        end
+      end
+
+      section_header "Connect Android"
+      row spacing: 8 do
+        text_field "", id: :connect_address, placeholder: "IP:connection-port" do |event|
+          state.connect_address = event.fetch("value")
+        end
+        button "Connect", id: :connect_android do
+          async do
+            notify_result.call(backend.connect(state.connect_address))
             refresh.call
           end
         end

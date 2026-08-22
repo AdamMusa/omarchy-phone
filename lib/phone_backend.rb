@@ -51,10 +51,26 @@ class PhoneBackend
     spawn_gui(argv, "scrcpy")
   end
 
-  def connect(device_id) = action(["adb", "connect", device_id.to_s], "Connected to #{device_id}")
+  def connect(device_id)
+    address = device_id.to_s.strip
+    return Result.new(ok: false, message: "Enter the IP and connection port shown on Wireless debugging") unless android_endpoint?(address)
+    action(["adb", "connect", address], "Connected to #{address}")
+  end
   def disconnect(device_id) = action(["adb", "disconnect", device_id.to_s], "Disconnected #{device_id}")
   def forget(device_id) = disconnect(device_id)
-  def pair_android(address, code) = action(["adb", "pair", address.to_s, code.to_s], "Paired #{address}")
+  def pair_android(address, code)
+    address = address.to_s.strip
+    code = code.to_s.strip
+    return Result.new(ok: false, message: "Enter the IP and pairing port from the pairing-code popup") unless android_endpoint?(address)
+    return Result.new(ok: false, message: "Enter the current six-digit pairing code") unless /\A\d{6}\z/.match?(code)
+
+    result = action(["adb", "pair", address, code], "Paired #{address}")
+    if !result.ok && result.message.include?("protocol fault")
+      Result.new(ok: false, message: "Pairing failed. Open a new pairing-code popup and retry before the code expires.")
+    else
+      result
+    end
+  end
   def trust_iphone(device_id) = action(["idevicepair", "-u", device_id.to_s, "pair"], "Trusted iPhone")
 
   def start_airplay(fullscreen: false)
@@ -89,6 +105,10 @@ class PhoneBackend
   def airplay_running? = process_alive?(@airplay_pid)
 
   private
+
+  def android_endpoint?(value)
+    /\A(?:\d{1,3}\.){3}\d{1,3}:\d{1,5}\z/.match?(value)
+  end
 
   def load_airplay_pid
     return nil unless File.file?(@airplay_pid_path)
