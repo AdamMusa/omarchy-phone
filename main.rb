@@ -130,47 +130,51 @@ OmarchyUI.plugin do
       bitrate_field = number_field(state.bitrate_mbps, id: :bitrate, label: "Bitrate Mbps", from: 1, to: 100) { |event| state.bitrate_mbps = event.fetch("value") }
       bind(bitrate_field, :value) { state.bitrate_mbps }
 
-      section_header "Connect Android"
-      text "Step 1: tap Wireless debugging → Pair device with pairing code. Enter the temporary pairing address and six-digit code.",
-           style: :caption, wrap: true
-      row spacing: 8 do
-        column spacing: 4 do
-          text "Pairing IP and port", style: :caption
-          text_field "", id: :pair_address, placeholder: "192.168.1.20:37123" do |event|
-            state.pair_address = event.fetch("value")
-          end
-        end
-        column spacing: 4 do
-          text "Six-digit code from Android", style: :caption
-          text_field "", id: :pair_code, placeholder: "123456" do |event|
-            state.pair_code = event.fetch("value")
-          end
-        end
-        column spacing: 4 do
-          text "Action", style: :caption
-          button "Pair", id: :pair do
-            async do
-              result = backend.pair_android(state.pair_address, state.pair_code)
-              state.connect_address = "#{state.pair_address.split(":", 2).first}:" if result.ok
-              notify_result.call(result)
-              refresh.call
+      dynamic id: :android_setup, spacing: 8 do
+        if state.devices.none? { |device| device.fetch(:platform) == "Android" && device.fetch(:connected) }
+          section_header "Connect Android"
+          text "Step 1: tap Wireless debugging → Pair device with pairing code. Enter the temporary pairing address and six-digit code.",
+               style: :caption, wrap: true
+          row spacing: 8 do
+            column spacing: 4 do
+              text "Pairing IP and port", style: :caption
+              text_field "", id: :pair_address, placeholder: "192.168.1.20:37123" do |event|
+                state.pair_address = event.fetch("value")
+              end
+            end
+            column spacing: 4 do
+              text "Six-digit code from Android", style: :caption
+              text_field "", id: :pair_code, placeholder: "123456" do |event|
+                state.pair_code = event.fetch("value")
+              end
+            end
+            column spacing: 4 do
+              text "Action", style: :caption
+              button "Pair", id: :pair do
+                async do
+                  result = backend.pair_android(state.pair_address, state.pair_code)
+                  state.connect_address = "#{state.pair_address.split(":", 2).first}:" if result.ok
+                  notify_result.call(result)
+                  refresh.call
+                end
+              end
             end
           end
-        end
-      end
 
-      text "Step 2: close the pairing popup, then enter the different IP and port shown on the main Wireless debugging screen.",
-           style: :caption, wrap: true
-      row spacing: 8 do
-        connection_field = text_field "", id: :connect_address, placeholder: "192.168.1.20:38879" do |event|
-          state.connect_address = event.fetch("value")
-        end
-        bind(connection_field, :text) { state.connect_address }
-        button "Connect", id: :connect do
-          async do
-            result = backend.connect(state.connect_address)
-            notify_result.call(result)
-            refresh.call
+          text "Step 2: close the pairing popup, then enter the different IP and port shown on the main Wireless debugging screen.",
+               style: :caption, wrap: true
+          row spacing: 8 do
+            connection_field = text_field "", id: :connect_address, placeholder: "192.168.1.20:38879" do |event|
+              state.connect_address = event.fetch("value")
+            end
+            bind(connection_field, :text) { state.connect_address }
+            button "Connect", id: :connect do
+              async do
+                result = backend.connect(state.connect_address)
+                notify_result.call(result)
+                refresh.call
+              end
+            end
           end
         end
       end
