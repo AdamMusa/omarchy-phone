@@ -20,7 +20,6 @@ OmarchyUI.plugin do
   state :bitrate_mbps, 8
   state :pair_address, ""
   state :pair_code, ""
-  state :connect_address, ""
 
   refresh = proc do
     snapshot = backend.snapshot
@@ -131,29 +130,24 @@ OmarchyUI.plugin do
       bind(bitrate_field, :value) { state.bitrate_mbps }
 
       section_header "Pair Android"
+      text "On Android, tap Wireless debugging → Pair device with pairing code. Enter the address and six-digit code shown in that popup.",
+           style: :caption, wrap: true
       row spacing: 8 do
-        text_field "", id: :pair_address, placeholder: "IP:pairing-port" do |event|
-          state.pair_address = event.fetch("value")
+        column spacing: 4 do
+          text "Pairing IP and port", style: :caption
+          text_field "", id: :pair_address, placeholder: "192.168.1.20:37123" do |event|
+            state.pair_address = event.fetch("value")
+          end
         end
-        text_field "", id: :pair_code, placeholder: "Pairing code" do |event|
-          state.pair_code = event.fetch("value")
+        column spacing: 4 do
+          text "Six-digit code from Android", style: :caption
+          text_field "", id: :pair_code, placeholder: "123456" do |event|
+            state.pair_code = event.fetch("value")
+          end
         end
         button "Pair", id: :pair do
           async do
             notify_result.call(backend.pair_android(state.pair_address, state.pair_code))
-            refresh.call
-          end
-        end
-      end
-
-      section_header "Connect Android"
-      row spacing: 8 do
-        text_field "", id: :connect_address, placeholder: "IP:connection-port" do |event|
-          state.connect_address = event.fetch("value")
-        end
-        button "Connect", id: :connect_android do
-          async do
-            notify_result.call(backend.connect(state.connect_address))
             refresh.call
           end
         end
