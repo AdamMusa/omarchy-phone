@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-require "fileutils" unless Object.const_defined?(:MRUBY_VERSION)
-require "json" unless Object.const_defined?(:JSON)
-require "thread" unless Object.const_defined?(:Mutex)
-
 class PhoneBackend
   Result = Struct.new(:ok, :message, keyword_init: true)
   COMMAND_OUTPUT_LIMIT = 65_536
@@ -17,17 +13,7 @@ class PhoneBackend
     @android_address_path = File.join(@state_dir, "android-address")
     @android_pair_path = File.join(@state_dir, "android-paired-ip")
     @airplay_pid = nil
-    if Object.const_defined?(:FileUtils)
-      FileUtils.mkdir_p(@state_dir)
-    else
-      parts = @state_dir.split("/")
-      current = @state_dir.start_with?("/") ? "/" : ""
-      parts.each do |part|
-        next if part.empty?
-        current = File.join(current, part)
-        Dir.mkdir(current) unless File.directory?(current)
-      end
-    end
+    create_directory(@state_dir)
     @airplay_pid = load_airplay_pid
     at_exit { stop_airplay } if Kernel.respond_to?(:at_exit)
   end
@@ -139,6 +125,16 @@ class PhoneBackend
   def airplay_running? = owned_airplay_process?(@airplay_pid)
 
   private
+
+  def create_directory(path)
+    current = path.start_with?(File::SEPARATOR) ? File::SEPARATOR : ""
+    path.split(File::SEPARATOR).each do |part|
+      next if part.empty?
+
+      current = File.join(current, part)
+      Dir.mkdir(current) unless File.directory?(current)
+    end
+  end
 
   def android_endpoint?(value)
     address = value.split(":")
@@ -307,15 +303,7 @@ class PhoneBackend
   end
 
   def spawn_detached(argv, name)
-    if Object.const_defined?(:MRUBY_VERSION)
-      OmarchyUI.spawn_detached(argv, File.join(@state_dir, "#{name}.log"))
-    else
-      log = File.open(File.join(@state_dir, "#{name}.log"), "a")
-      pid = Process.spawn(*argv, out: log, err: log, pgroup: true)
-      log.close
-      Process.detach(pid)
-      pid
-    end
+    OmarchyUI.spawn_detached(argv, File.join(@state_dir, "#{name}.log"))
   end
 
   def available?(program)

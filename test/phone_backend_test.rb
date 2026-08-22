@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "json"
+require "thread"
+
 require "minitest/autorun"
 require "tmpdir"
 

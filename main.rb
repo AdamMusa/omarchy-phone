@@ -1,10 +1,7 @@
 # frozen_string_literal: true
 
-require "omarchy_ui" unless Object.const_defined?(:OmarchyUI)
-unless Object.const_defined?(:PhoneBackend)
-  backend_path = File.join(File.dirname(__FILE__), "lib", "phone_backend.rb")
-  eval(File.read(backend_path))
-end
+require "omarchy_ui"
+require_relative "lib/phone_backend"
 
 backend = PhoneBackend.new
 last_auto_connect_at = 0
