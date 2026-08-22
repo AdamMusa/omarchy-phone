@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../lib/omarchy_ui" unless Object.const_defined?(:OmarchyUI)
+require "omarchy_ui" unless Object.const_defined?(:OmarchyUI)
 unless Object.const_defined?(:PhoneBackend)
   backend_path = File.join(File.dirname(__FILE__), "lib", "phone_backend.rb")
   eval(File.read(backend_path))

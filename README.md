@@ -68,13 +68,15 @@ omarchy plugin remove izeesoft.omarchy-phone
 
 ## Development
 
-Application behavior lives in `main.rb` and `lib/phone_backend.rb`. The remaining QML files and
-`omarchy-ui-runtime` are generated distribution artifacts from Omarchy UI.
+Application behavior lives in `main.rb` and `lib/phone_backend.rb`. QML bridge files and
+`omarchy-ui-runtime` are generated distribution artifacts owned by Omarchy UI; do not edit them
+inside this project.
 
-Validate before publishing:
+Build and validate the complete plugin before publishing:
 
 ```bash
-omarchy plugin validate .
+omarchy_ui bundle
+omarchy plugin validate dist/omarchy-phone-plugin
 ```
 
 ## License
