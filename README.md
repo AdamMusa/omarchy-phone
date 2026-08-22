@@ -127,7 +127,15 @@ Omarchy Phone runs as the current user and starts only the local tools listed ab
 with phones through USB or the local network, does not provide telemetry, and does not send device
 information to an external service. Android pairing addresses and runtime logs remain in the local
 state directory. The bundled `omarchy-ui-runtime` is an x86-64 executable built from the
-[Omarchy UI source](https://github.com/AdamMusa/omarchy-ui).
+[Omarchy UI source](https://github.com/AdamMusa/omarchy-ui). Its exact source revision, pinned mruby
+revision, rebuild procedure, and digest are recorded in [`RUNTIME_PROVENANCE.md`](RUNTIME_PROVENANCE.md)
+and [`omarchy-ui-runtime.sha256`](omarchy-ui-runtime.sha256).
+
+Command output is limited before it reaches application state, discovery results have item and
+string ceilings, and runtime protocol messages are size-bounded before QML buffering. External
+device text is rendered as plain text. AirPlay shutdown verifies the saved PID, process start time,
+process group, and executable identity immediately before signaling; stale, replaced, symlinked,
+or non-regular state records are cleared without signaling a process.
 
 ## Marketplace submission
 
@@ -150,6 +158,8 @@ inside this project.
 Build and validate the complete plugin before publishing:
 
 ```bash
+sha256sum -c omarchy-ui-runtime.sha256
+ruby test/phone_backend_test.rb
 omarchy_ui bundle
 omarchy plugin validate dist/omarchy-phone-plugin
 ```

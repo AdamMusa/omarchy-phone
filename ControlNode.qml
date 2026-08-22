@@ -40,6 +40,13 @@ Loader {
     return icons[key] || key
   }
 
+  function escapeAutoText(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+  }
+
   function easingType(name) {
     var easings = {
       linear: Easing.Linear,
@@ -224,6 +231,7 @@ Loader {
 
     Text {
       text: String(root.prop("text", ""))
+      textFormat: Text.PlainText
       color: root.prop("color", root.foreground)
       font.family: root.fontFamily
       font.pixelSize: {
@@ -243,6 +251,7 @@ Loader {
 
     Text {
       text: root.iconGlyph(root.prop("name", root.prop("text", "")))
+      textFormat: Text.PlainText
       color: root.foreground
       font.family: root.fontFamily
       font.pixelSize: Number(root.prop("size", Style.font.icon))
@@ -253,9 +262,9 @@ Loader {
     id: buttonComponent
 
     OmarchyUi.Button {
-      text: String(root.prop("text", ""))
+      text: root.escapeAutoText(root.prop("text", ""))
       iconText: root.iconGlyph(root.prop("icon", ""))
-      tooltipText: String(root.prop("tooltip", ""))
+      tooltipText: root.escapeAutoText(root.prop("tooltip", ""))
       selected: root.prop("selected", false) === true
       active: root.prop("active", false) === true
       hasCursor: root.prop("cursor", false) === true
@@ -461,7 +470,7 @@ Loader {
   Component {
     id: actionButtonComponent
     OmarchyUi.PanelActionButton {
-      iconText: root.iconGlyph(root.prop("icon", "")); tooltipText: String(root.prop("tooltip", ""))
+      iconText: root.iconGlyph(root.prop("icon", "")); tooltipText: root.escapeAutoText(root.prop("tooltip", ""))
       bordered: root.prop("bordered", false) === true; focusable: root.prop("focusable", false) === true
       hasCursor: root.prop("cursor", false) === true
       size: Number(root.prop("size", 28)); foreground: root.prop("foreground", root.foreground)
@@ -475,7 +484,7 @@ Loader {
   Component {
     id: toggleComponent
     OmarchyUi.Toggle {
-      label: String(root.prop("label", "")); description: String(root.prop("description", ""))
+      label: root.escapeAutoText(root.prop("label", "")); description: root.escapeAutoText(root.prop("description", ""))
       checked: root.prop("checked", false) === true; hasCursor: root.prop("cursor", false) === true
       rounded: root.prop("rounded", Style.cornerRadius > 0) === true
       foreground: root.prop("foreground", root.foreground); accent: root.prop("accent", Color.accent)
@@ -522,7 +531,7 @@ Loader {
   Component {
     id: numberFieldComponent
     OmarchyUi.NumberField {
-      label: String(root.prop("label", "")); value: Number(root.prop("value", 0))
+      label: root.escapeAutoText(root.prop("label", "")); value: Number(root.prop("value", 0))
       from: Number(root.prop("from", 0)); to: Number(root.prop("to", 100)); stepSize: Number(root.prop("step", 1))
       foreground: root.prop("foreground", root.foreground); accent: root.prop("accent", Color.accent)
       fontFamily: String(root.prop("font_family", root.fontFamily)); fontSize: Number(root.prop("font_size", Style.font.body))
@@ -551,7 +560,7 @@ Loader {
   Component {
     id: dropdownComponent
     OmarchyUi.Dropdown {
-      label: String(root.prop("label", "")); value: String(root.prop("value", "")); options: root.prop("options", [])
+      label: root.escapeAutoText(root.prop("label", "")); value: String(root.prop("value", "")); options: root.prop("options", [])
       implicitWidth: Number(root.prop("width", 240)); foreground: root.prop("foreground", root.foreground)
       background: root.prop("background", Color.popups.background); popupBorder: root.prop("popup_border", Color.popups.border)
       accent: root.prop("accent", Color.accent); fontFamily: String(root.prop("font_family", root.fontFamily))
@@ -565,7 +574,7 @@ Loader {
   Component {
     id: multiSelectComponent
     OmarchyUi.MultiSelect {
-      label: String(root.prop("label", "")); values: root.prop("values", []); options: root.prop("options", [])
+      label: root.escapeAutoText(root.prop("label", "")); values: root.prop("values", []); options: root.prop("options", [])
       placeholderText: String(root.prop("placeholder", "Search...")); enabled: root.prop("enabled", true) !== false
       optionsCommand: root.prop("options_command", []); optionsCommandCwd: String(root.prop("options_command_cwd", ""))
       emptyText: String(root.prop("empty_text", "No options")); noSelectionText: String(root.prop("no_selection_text", "None selected"))
@@ -604,12 +613,12 @@ Loader {
   }
 
   Component { id: separatorComponent; OmarchyUi.PanelSeparator { foreground: root.foreground; strength: Number(root.prop("strength", 0.12)) } }
-  Component { id: sectionHeaderComponent; OmarchyUi.PanelSectionHeader { text: String(root.prop("text", "")); foreground: root.foreground; fontFamily: root.fontFamily } }
+  Component { id: sectionHeaderComponent; OmarchyUi.PanelSectionHeader { text: root.escapeAutoText(root.prop("text", "")); foreground: root.foreground; fontFamily: root.fontFamily } }
 
   Component {
     id: searchableDropdownComponent
     OmarchyUi.SearchableDropdown {
-      label: String(root.prop("label", "")); value: String(root.prop("value", "")); options: root.prop("options", [])
+      label: root.escapeAutoText(root.prop("label", "")); value: String(root.prop("value", "")); options: root.prop("options", [])
       placeholderText: String(root.prop("placeholder", "Search...")); emptyText: String(root.prop("empty_text", "No matches"))
       triggerLabel: String(root.prop("trigger_label", "")); implicitWidth: Number(root.prop("width", 240))
       foreground: root.prop("foreground", root.foreground); background: root.prop("background", Color.popups.background)
@@ -640,7 +649,7 @@ Loader {
   Component {
     id: panelHeroComponent
     OmarchyUi.PanelHero {
-      title: String(root.prop("title", "")); meta: String(root.prop("meta", "")); detail: String(root.prop("detail", ""))
+      title: root.escapeAutoText(root.prop("title", "")); meta: root.escapeAutoText(root.prop("meta", "")); detail: root.escapeAutoText(root.prop("detail", ""))
       iconSize: Number(root.prop("icon_size", Style.font.display)); iconOpacity: Number(root.prop("icon_opacity", 1))
       metaOpacity: Number(root.prop("meta_opacity", 1)); foreground: root.prop("foreground", root.foreground)
       fontFamily: String(root.prop("font_family", root.fontFamily))
@@ -665,7 +674,7 @@ Loader {
   Component {
     id: widgetButtonComponent
     OmarchyUi.WidgetButton {
-      text: String(root.prop("text", "")); tooltipText: String(root.prop("tooltip", "")); active: root.prop("active", false) === true
+      text: root.escapeAutoText(root.prop("text", "")); tooltipText: root.escapeAutoText(root.prop("tooltip", "")); active: root.prop("active", false) === true
       dimmed: root.prop("dimmed", false) === true; concealed: root.prop("concealed", false) === true
       interactive: root.prop("interactive", true) !== false; pressable: root.prop("pressable", true) !== false
       fontFamily: String(root.prop("font_family", root.fontFamily)); fontSize: Number(root.prop("font_size", Style.font.body))
@@ -720,10 +729,10 @@ Loader {
           id: rowContent
           anchors.centerIn: parent
           spacing: Style.spacing.controlGap
-          Text { visible: text !== ""; text: root.iconGlyph(typeof modelData === "object" ? modelData[listControl.iconField] : ""); color: root.foreground; font.family: root.fontFamily }
+          Text { visible: text !== ""; text: root.iconGlyph(typeof modelData === "object" ? modelData[listControl.iconField] : ""); textFormat: Text.PlainText; color: root.foreground; font.family: root.fontFamily }
           Column {
-            Text { text: String(typeof modelData === "object" ? (modelData[listControl.labelField] ?? value) : modelData); color: root.foreground; font.family: root.fontFamily }
-            Text { visible: text !== ""; text: String(typeof modelData === "object" ? (modelData[listControl.descriptionField] || "") : ""); color: Qt.darker(root.foreground, 1.4); font.family: root.fontFamily; font.pixelSize: Style.font.caption }
+            Text { text: String(typeof modelData === "object" ? (modelData[listControl.labelField] ?? value) : modelData); textFormat: Text.PlainText; color: root.foreground; font.family: root.fontFamily }
+            Text { visible: text !== ""; text: String(typeof modelData === "object" ? (modelData[listControl.descriptionField] || "") : ""); textFormat: Text.PlainText; color: Qt.darker(root.foreground, 1.4); font.family: root.fontFamily; font.pixelSize: Style.font.caption }
           }
         }
         MouseArea {
@@ -738,7 +747,7 @@ Loader {
 
       Text {
         anchors.centerIn: parent; visible: listControl.count === 0
-        text: String(root.prop("empty_text", "No items")); color: Qt.darker(root.foreground, 1.4); font.family: root.fontFamily
+        text: String(root.prop("empty_text", "No items")); textFormat: Text.PlainText; color: Qt.darker(root.foreground, 1.4); font.family: root.fontFamily
       }
     }
   }

@@ -6,6 +6,9 @@ require "thread" unless Object.const_defined?(:Mutex)
 
 class PhoneBackend
   Result = Struct.new(:ok, :message, keyword_init: true)
+  COMMAND_OUTPUT_LIMIT = 65_536
+  MAX_DISCOVERY_ITEMS = 64
+  MAX_EXTERNAL_STRING = 256
 
   def initialize(state_dir: File.expand_path("~/.local/state/omarchy-phone-ruby"))
     @state_dir = state_dir
@@ -106,12 +109,12 @@ class PhoneBackend
 
   def start_airplay(fullscreen: false)
     @action_lock.synchronize do
-      return Result.new(ok: true, message: "AirPlay receiver is already running") if process_alive?(@airplay_pid)
+      return Result.new(ok: true, message: "AirPlay receiver is already running") if owned_airplay_process?(@airplay_pid)
       pin = format("%04d", rand(10_000))
       argv = ["uxplay", "-n", "Omarchy", "-nh", "-pin", pin, "-p", "7100"]
       argv << "-fs" if fullscreen
       @airplay_pid = spawn_detached(argv, "uxplay")
-      File.open(@airplay_pid_path, "w") { |file| file.write("#{@airplay_pid}\n") }
+      write_airplay_identity(@airplay_pid)
       Result.new(ok: true, message: "AirPlay receiver started — PIN #{pin}")
     rescue Errno::ENOENT
       Result.new(ok: false, message: "UxPlay is not installed")
@@ -120,7 +123,7 @@ class PhoneBackend
 
   def stop_airplay
     @action_lock.synchronize do
-      unless process_alive?(@airplay_pid)
+      unless owned_airplay_process?(@airplay_pid)
         clear_airplay_pid
         return Result.new(ok: true, message: "AirPlay receiver is stopped")
       end
@@ -133,7 +136,7 @@ class PhoneBackend
     end
   end
 
-  def airplay_running? = process_alive?(@airplay_pid)
+  def airplay_running? = owned_airplay_process?(@airplay_pid)
 
   private
 
@@ -153,7 +156,7 @@ class PhoneBackend
   def discover_android_connection(phone_ip)
     result = command(["avahi-browse", "-rtp", "_adb-tls-connect._tcp"], timeout: 8)
     return nil unless result&.success?
-    result.stdout.each_line do |line|
+    bounded_lines(result.stdout).each do |line|
       fields = line.strip.split(";")
       next unless fields[0] == "=" && fields[4] == "_adb-tls-connect._tcp"
       return "#{fields[7]}:#{fields[8]}" if fields[7] == phone_ip && fields[8].to_i.positive?
@@ -166,15 +169,24 @@ class PhoneBackend
   end
 
   def load_airplay_pid
-    return nil unless File.file?(@airplay_pid_path)
-    Integer(File.read(@airplay_pid_path).strip)
-  rescue ArgumentError
+    unless safe_regular_file?(@airplay_pid_path)
+      clear_airplay_pid if File.exist?(@airplay_pid_path) || symlink_path?(@airplay_pid_path)
+      return nil
+    end
+    fields = File.read(@airplay_pid_path, 256).split("\n")
+    pid = Integer(fields[0])
+    saved_identity = { "start_time" => fields[1].to_s, "command" => fields[2].to_s }
+    return pid if valid_airplay_identity?(pid, saved_identity)
+    clear_airplay_pid
+    nil
+  rescue ArgumentError, SystemCallError
+    clear_airplay_pid
     nil
   end
 
   def clear_airplay_pid
     @airplay_pid = nil
-    File.delete(@airplay_pid_path) if File.file?(@airplay_pid_path)
+    File.delete(@airplay_pid_path) if File.exist?(@airplay_pid_path) || symlink_path?(@airplay_pid_path)
   end
 
   def backend_status
@@ -187,12 +199,12 @@ class PhoneBackend
   def android_devices
     result = command(["adb", "devices", "-l"], timeout: 5)
     return [] unless result&.success?
-    attached = result.stdout.lines.drop(1).filter_map do |line|
+    attached = bounded_lines(result.stdout).drop(1).filter_map do |line|
       serial, status, *details = line.strip.split
       next if serial.nil? || status.nil?
       fields = details.filter_map { |field| field.split(":", 2) if field.include?(":") }.to_h
       device = {
-        id: serial, name: fields["model"]&.tr("_", " ") || serial,
+        id: bounded_text(serial), name: bounded_text(fields["model"]&.tr("_", " ") || serial),
         platform: "Android", connected: status == "device", paired: true,
         transport: serial.include?(":") ? "Wi-Fi" : "USB",
         model: fields["model"], capabilities: android_capabilities(status == "device")
@@ -206,24 +218,24 @@ class PhoneBackend
   def ios_devices
     result = command(["idevice_id", "-l"], timeout: 5)
     return [] unless result&.success?
-    result.stdout.lines.filter_map do |line|
+    bounded_lines(result.stdout).filter_map do |line|
       id = line.strip
       next if id.empty?
       name = command(["ideviceinfo", "-u", id, "-k", "DeviceName"], timeout: 3)&.stdout&.strip
       model = command(["ideviceinfo", "-u", id, "-k", "ProductType"], timeout: 3)&.stdout&.strip
       {
-        id:, name: name.to_s.empty? ? "iPhone" : name, platform: "iOS",
-        connected: true, paired: true, transport: "USB", model:,
+        id: bounded_text(id), name: bounded_text(name.to_s.empty? ? "iPhone" : name), platform: "iOS",
+        connected: true, paired: true, transport: "USB", model: bounded_text(model),
         capabilities: { mirror: "available", trust: "available", files: "experimental" }
       }
     end
   end
 
   def airplay_devices
-    return [] unless process_alive?(@airplay_pid)
+    return [] unless owned_airplay_process?(@airplay_pid)
     result = command(["ss", "-Hnt", "state", "established", "sport", "=", ":7100"], timeout: 3)
     return [] unless result&.success?
-    result.stdout.lines.filter_map do |line|
+    bounded_lines(result.stdout).filter_map do |line|
       endpoint = line.strip.split.fetch(3, "")
       separator = endpoint.rindex(":")
       address = separator ? endpoint[0...separator] : endpoint
@@ -241,13 +253,13 @@ class PhoneBackend
     result = command(["adb", "mdns", "services"], timeout: 5)
     return attached unless result&.success?
     known = attached.to_h { |device| [device.fetch(:id), device] }
-    result.stdout.each_line do |line|
+    bounded_lines(result.stdout).each do |line|
       match = line.strip.match(/\A(.+?)\s+(_adb-tls-(?:connect|pairing)\._tcp\.?)\s+(\S+):(\d+)\z/)
       next unless match
       address = "#{match[3]}:#{match[4]}"
       next if known.key?(address) || match[2].include?("pairing")
       known[address] = {
-        id: address, name: match[1].gsub("\\032", " "), platform: "Android",
+        id: address, name: bounded_text(match[1].gsub("\\032", " ")), platform: "Android",
         connected: false, paired: true, transport: "Wi-Fi", model: nil,
         capabilities: android_capabilities(false)
       }
@@ -275,7 +287,7 @@ class PhoneBackend
       result = command(argv, timeout: 20)
       return Result.new(ok: false, message: "#{argv.first} is not installed") unless result
       return Result.new(ok: false, message: "#{argv.first} is not installed") if result.exitstatus == 127
-      message = [result.stdout, result.stderr].join(" ").strip
+      message = bounded_text([result.stdout, result.stderr].join(" ").strip, 512)
       failure = message.empty? ? "#{argv.first} failed with exit status #{result.exitstatus}" : message
       Result.new(ok: result.success?, message: result.success? ? (message.empty? ? success_message : message) : failure)
     end
@@ -289,8 +301,8 @@ class PhoneBackend
   end
 
   def command(argv, timeout:)
-    OmarchyUI::Command.run(argv, timeout:)
-  rescue Errno::ENOENT, OmarchyUI::CommandTimeout
+    OmarchyUI::Command.run(argv, timeout:, max_output_bytes: COMMAND_OUTPUT_LIMIT)
+  rescue Errno::ENOENT, OmarchyUI::CommandTimeout, OmarchyUI::CommandOutputLimit
     nil
   end
 
@@ -321,12 +333,69 @@ class PhoneBackend
     File.open(@android_pair_path, "w") { |file| file.write("#{phone_ip}\n") }
   end
 
-  def process_alive?(pid)
+  def write_airplay_identity(pid)
+    identity = nil
+    20.times do
+      identity = process_identity(pid)
+      break if identity && identity["command"] == "uxplay"
+      sleep(0.01)
+    end
+    raise "could not verify spawned UxPlay process" unless valid_airplay_identity?(pid, identity)
+    raise "unsafe AirPlay state path" if File.exist?(@airplay_pid_path) && !safe_regular_file?(@airplay_pid_path)
+    temporary = "#{@airplay_pid_path}.tmp-#{Process.pid}-#{rand(1_000_000)}"
+    File.open(temporary, "w", 0o600) do |file|
+      file.write("#{pid}\n#{identity.fetch("start_time")}\nuxplay\n")
+    end
+    File.rename(temporary, @airplay_pid_path)
+  ensure
+    File.delete(temporary) if temporary && File.file?(temporary)
+  end
+
+  def owned_airplay_process?(pid)
     return false unless pid
-    Process.kill(0, pid)
-    true
-  rescue Errno::ESRCH
-    false
+    valid_airplay_identity?(pid, process_identity(pid))
+  end
+
+  def valid_airplay_identity?(pid, saved_identity)
+    current = process_identity(pid)
+    current && saved_identity && pid.to_i.positive? &&
+      current.fetch("process_group").to_i == pid.to_i &&
+      current.fetch("start_time").to_s == saved_identity.fetch("start_time", "").to_s &&
+      current.fetch("command") == "uxplay" && saved_identity.fetch("command", "") == "uxplay"
+  end
+
+  def process_identity(pid)
+    return nil unless pid.to_i.positive?
+    stat = File.read("/proc/#{pid}/stat", 4096)
+    closing_parenthesis = stat.rindex(")")
+    return nil unless closing_parenthesis
+    tail_text = stat[(closing_parenthesis + 2)..]
+    return nil unless tail_text
+    tail = tail_text.split
+    command_line = File.read("/proc/#{pid}/cmdline", 4096).split("\0").first.to_s
+    {
+      "process_group" => tail.fetch(2).to_i,
+      "start_time" => tail.fetch(19),
+      "command" => File.basename(command_line)
+    }
+  rescue SystemCallError, IndexError
+    nil
+  end
+
+  def safe_regular_file?(path)
+    File.file?(path) && !symlink_path?(path)
+  end
+
+  def symlink_path?(path)
+    File.respond_to?(:symlink?) && File.symlink?(path)
+  end
+
+  def bounded_lines(output)
+    output.to_s.each_line.first(MAX_DISCOVERY_ITEMS).map { |line| line[0, 1024] }
+  end
+
+  def bounded_text(value, limit = MAX_EXTERNAL_STRING)
+    value.to_s.each_char.reject { |character| character.ord < 32 && character != "\n" && character != "\t" }.join[0, limit]
   end
 
   def truthy?(options, key) = options[key] == true || options[key.to_s] == true

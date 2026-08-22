@@ -24,6 +24,8 @@ Item {
   property int revision: 0
   property int restartDelayMs: 500
   property int eventSequence: 0
+  readonly property int maxStringLength: 16384
+  readonly property int maxCollectionItems: 256
 
   property var allowedTypes: ({})
   property var allowedProperties: ({})
@@ -41,6 +43,26 @@ Item {
     return value !== null && typeof value === "object" && !Array.isArray(value)
   }
 
+  function boundedValue(value, depth) {
+    if (depth > 8) return false
+    if (value === null || typeof value === "number" || typeof value === "boolean") return true
+    if (typeof value === "string") return value.length <= maxStringLength
+    if (Array.isArray(value)) {
+      if (value.length > maxCollectionItems) return false
+      for (var i = 0; i < value.length; i++) if (!boundedValue(value[i], depth + 1)) return false
+      return true
+    }
+    if (plainObject(value)) {
+      var keys = Object.keys(value)
+      if (keys.length > maxCollectionItems) return false
+      for (var k = 0; k < keys.length; k++) {
+        if (keys[k].length > 128 || !boundedValue(value[keys[k]], depth + 1)) return false
+      }
+      return true
+    }
+    return false
+  }
+
   function validateNode(node, index, depth, count) {
     if (!plainObject(node) || depth > 32 || count.value >= 2000) return false
     if (!allowedTypes[String(node.type || "")] || !validId(node.id)) return false
@@ -52,8 +74,7 @@ Item {
     for (var key in props) {
       if (!whitelist[key]) return false
       var value = props[key]
-      if (value !== null && typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean" && !Array.isArray(value) && !plainObject(value))
-        return false
+      if (!boundedValue(value, 0)) return false
     }
 
     var children = node.children === undefined ? [] : node.children
@@ -225,8 +246,7 @@ Item {
     if (message.op !== "set" || typeof message.property !== "string") return reject("invalid patch")
     if (!allowedProperties[node.type][message.property]) return reject("patch target rejected")
     var value = message.value
-    if (value !== null && typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean" && !Array.isArray(value) && !plainObject(value))
-      return reject("patch value rejected")
+    if (!boundedValue(value, 0)) return reject("patch value rejected")
 
     var animation = message.animation
     if (animation !== undefined && !validAnimation(animation)) return reject("patch animation rejected")
@@ -292,14 +312,15 @@ Item {
     } else if (message.type === "ack") {
       // Acknowledgements are consumed by benchmarks and future diagnostics.
     } else if (message.type === "handler_error" || message.type === "runtime_error" || message.type === "protocol_error") {
-      lastError = String(message.message || message.code || "Ruby runtime error")
+      lastError = String(message.message || message.code || "Ruby runtime error").slice(0, 512)
     } else {
       reject("unknown message type")
     }
   }
 
   function handleEffect(message) {
-    if (typeof message.name !== "string" || !plainObject(message.payload || {}))
+    if (typeof message.name !== "string" || message.name.length > 64
+        || !plainObject(message.payload || {}) || !boundedValue(message.payload || {}, 0))
       return reject("invalid effect")
     var payload = message.payload || {}
     effectReceived(message.name, payload)
@@ -313,7 +334,7 @@ Item {
   }
 
   function reject(reason) {
-    lastError = String(reason || "protocol error")
+    lastError = String(reason || "protocol error").slice(0, 512)
     console.warn("omarchy-ui bridge:", lastError)
     return false
   }
@@ -342,7 +363,8 @@ Item {
   }
 
   function sendEvent(surfaceName, controlId, eventName, payload) {
-    if (!rubyProcess.running || !validId(controlId) || !/^[a-z][a-z0-9_]{0,63}$/.test(eventName)) return false
+    if (!rubyProcess.running || !validId(controlId) || !/^[a-z][a-z0-9_]{0,63}$/.test(eventName)
+        || !plainObject(payload || {}) || !boundedValue(payload || {}, 0)) return false
     var target = nodeIndex[String(controlId)]
     var definition = target ? componentDefinitions[String(target.type)] : null
     var subscriptions = target && Array.isArray(target.events) ? target.events : []
