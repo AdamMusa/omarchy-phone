@@ -55,6 +55,7 @@ class PhoneBackend
   def connect(device_id)
     address = device_id.to_s.strip
     return Result.new(ok: false, message: "Enter the IP and connection port shown on Wireless debugging") unless android_endpoint?(address)
+    command(["adb", "disconnect", address], timeout: 5)
     result = action(["adb", "connect", address], "Connected to #{address}")
     failed = result.message.downcase.include?("failed to connect") || result.message.downcase.include?("unable to connect")
     result = Result.new(ok: false, message: result.message) if result.ok && failed

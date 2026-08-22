@@ -24,11 +24,19 @@ OmarchyUI.plugin do
 
   refresh = proc do
     snapshot = backend.snapshot
-    if snapshot.fetch(:devices).none? { |device| device.fetch(:platform) == "Android" && device.fetch(:connected) } &&
-       !backend.last_android_address.empty? && Time.now.to_i - last_auto_connect_at >= 15
+    connected_android = snapshot.fetch(:devices).any? do |device|
+      device.fetch(:platform) == "Android" && device.fetch(:connected)
+    end
+    if !connected_android && Time.now.to_i - last_auto_connect_at >= 15
       last_auto_connect_at = Time.now.to_i
-      backend.connect(backend.last_android_address)
-      snapshot = backend.snapshot
+      available_android = snapshot.fetch(:devices).find do |device|
+        device.fetch(:platform) == "Android" && !device.fetch(:connected)
+      end
+      address = available_android ? available_android.fetch(:id) : backend.last_android_address
+      unless address.empty?
+        backend.connect(address)
+        snapshot = backend.snapshot
+      end
     end
     transaction do
       state.devices = snapshot.fetch(:devices)
