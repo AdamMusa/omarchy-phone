@@ -145,10 +145,13 @@ OmarchyUI.plugin do
             state.pair_code = event.fetch("value")
           end
         end
-        button "Pair", id: :pair do
-          async do
-            notify_result.call(backend.pair_android(state.pair_address, state.pair_code))
-            refresh.call
+        column spacing: 4 do
+          text "Action", style: :caption
+          button "Pair", id: :pair do
+            async do
+              notify_result.call(backend.pair_android(state.pair_address, state.pair_code))
+              refresh.call
+            end
           end
         end
       end

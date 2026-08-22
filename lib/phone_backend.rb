@@ -62,7 +62,7 @@ class PhoneBackend
     address = address.to_s.strip
     code = code.to_s.strip
     return Result.new(ok: false, message: "Enter the IP and pairing port from the pairing-code popup") unless android_endpoint?(address)
-    return Result.new(ok: false, message: "Enter the current six-digit pairing code") unless /\A\d{6}\z/.match?(code)
+    return Result.new(ok: false, message: "Enter the current six-digit pairing code") unless code.length == 6 && decimal_string?(code)
 
     result = action(["adb", "pair", address, code], "Paired #{address}")
     if !result.ok && result.message.include?("protocol fault")
@@ -113,7 +113,15 @@ class PhoneBackend
   private
 
   def android_endpoint?(value)
-    /\A(?:\d{1,3}\.){3}\d{1,3}:\d{1,5}\z/.match?(value)
+    address = value.split(":")
+    return false unless address.length == 2
+    octets = address[0].split(".")
+    return false unless octets.length == 4 && octets.all? { |octet| decimal_string?(octet) && octet.to_i <= 255 }
+    decimal_string?(address[1]) && address[1].to_i.between?(1, 65_535)
+  end
+
+  def decimal_string?(value)
+    !value.empty? && value.each_byte.all? { |byte| byte >= 48 && byte <= 57 }
   end
 
   def discover_android_connection(phone_ip)
