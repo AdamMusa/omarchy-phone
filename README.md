@@ -7,22 +7,6 @@ The first application built with [Omarchy UI](https://github.com/AdamMusa/omarch
 It provides Android discovery, wireless pairing, scrcpy control, iPhone discovery, and AirPlay
 mirroring from an Omarchy bar widget and panel.
 
-## Features
-
-- Discover Android and iPhone devices automatically.
-- Pair Android 11+ devices using Wireless debugging.
-- Mirror and control Android through scrcpy, with audio, resolution, FPS, bitrate, fullscreen,
-  and physical-screen options.
-- Mirror iPhone video and audio through AirPlay with an on-screen PIN.
-- Show connection status and device-specific actions in the Omarchy bar and panel.
-- Run without Ruby, mruby, or the `omarchy-ui` gem installed on the destination computer.
-
-<p align="center">
-  <img src="preview.png" alt="Android and iPhone mirrored side by side with Omarchy Phone" width="92%">
-</p>
-
-The preview shows live Android and iPhone sessions running side by side from Omarchy Phone.
-
 ## App menu
 
 <p align="center">
@@ -33,24 +17,31 @@ The preview shows live Android and iPhone sessions running side by side from Oma
 Connected Android and iPhone devices appear automatically in one menu. The available actions and
 capabilities are shown per device, including Android control and iPhone AirPlay status.
 
-## Android preview
+## Android and iOS previews
 
-<p align="center">
-  <img src="docs/images/android-home.png" alt="Android home screen mirrored with Omarchy Phone" width="47%">
-  <img src="docs/images/android-apps.png" alt="Android application drawer controlled with Omarchy Phone" width="47%">
-</p>
+<table>
+  <tr>
+    <th width="50%">Android preview</th>
+    <th width="50%">iOS preview</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/android-apps.png" alt="Android application drawer controlled with Omarchy Phone"></td>
+    <td><img src="docs/images/iphone-airplay.png" alt="iPhone mirrored over AirPlay with Omarchy Phone"></td>
+  </tr>
+</table>
 
-These are real scrcpy sessions launched from Omarchy Phone. Once connected, mouse and keyboard
-input from Omarchy control the Android device directly.
+Android sessions support mouse and keyboard control through scrcpy. iPhone sessions mirror video
+and audio through AirPlay; Apple does not permit remote touch or keyboard input through AirPlay.
 
-## iPhone preview
+## Features
 
-<p align="center">
-  <img src="docs/images/iphone-airplay.png" alt="iPhone mirrored over AirPlay with Omarchy Phone" width="47%">
-</p>
-
-This is a live iPhone session mirrored over AirPlay. Apple does not permit AirPlay receivers to send
-touch or keyboard input back to iOS, so iPhone sessions are view-only.
+- Discover Android and iPhone devices automatically.
+- Pair Android 11+ devices using Wireless debugging.
+- Mirror and control Android through scrcpy, with audio, resolution, FPS, bitrate, fullscreen,
+  and physical-screen options.
+- Mirror iPhone video and audio through AirPlay with an on-screen PIN.
+- Show connection status and device-specific actions in the Omarchy bar and panel.
+- Run without Ruby, mruby, or the `omarchy-ui` gem installed on the destination computer.
 
 ## Install
 
