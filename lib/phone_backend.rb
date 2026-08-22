@@ -367,12 +367,16 @@ class PhoneBackend
   def process_identity(pid)
     return nil unless pid.to_i.positive?
     stat = File.read("/proc/#{pid}/stat", 4096)
+    return nil unless stat
     closing_parenthesis = stat.rindex(")")
     return nil unless closing_parenthesis
     tail_text = stat[(closing_parenthesis + 2)..]
     return nil unless tail_text
     tail = tail_text.split
-    command_line = File.read("/proc/#{pid}/cmdline", 4096).split("\0").first.to_s
+    command_data = File.read("/proc/#{pid}/cmdline", 4096)
+    return nil unless command_data
+    command_line = command_data.split("\0").first.to_s
+    return nil if command_line.empty?
     {
       "process_group" => tail.fetch(2).to_i,
       "start_time" => tail.fetch(19),
