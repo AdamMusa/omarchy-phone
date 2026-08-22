@@ -11,6 +11,7 @@ class PhoneBackend
     @state_dir = state_dir
     @action_lock = Mutex.new
     @airplay_pid_path = File.join(@state_dir, "uxplay.pid")
+    @android_address_path = File.join(@state_dir, "android-address")
     @airplay_pid = nil
     if Object.const_defined?(:FileUtils)
       FileUtils.mkdir_p(@state_dir)
@@ -54,7 +55,14 @@ class PhoneBackend
   def connect(device_id)
     address = device_id.to_s.strip
     return Result.new(ok: false, message: "Enter the IP and connection port shown on Wireless debugging") unless android_endpoint?(address)
-    action(["adb", "connect", address], "Connected to #{address}")
+    result = action(["adb", "connect", address], "Connected to #{address}")
+    failed = result.message.downcase.include?("failed to connect") || result.message.downcase.include?("unable to connect")
+    result = Result.new(ok: false, message: result.message) if result.ok && failed
+    remember_android_address(address) if result.ok
+    result
+  end
+  def last_android_address
+    File.file?(@android_address_path) ? File.read(@android_address_path).strip : ""
   end
   def disconnect(device_id) = action(["adb", "disconnect", device_id.to_s], "Disconnected #{device_id}")
   def forget(device_id) = disconnect(device_id)
@@ -68,7 +76,7 @@ class PhoneBackend
     if !result.ok && result.message.include?("protocol fault")
       Result.new(ok: false, message: "Pairing failed. Open a new pairing-code popup and retry before the code expires.")
     elsif result.ok
-      Result.new(ok: true, message: "Pairing complete — not connected yet. Enter the main Wireless debugging address in Step 2.")
+      Result.new(ok: true, message: "Pairing complete. Replace the port with the main Wireless debugging port, then connect.")
     else
       result
     end
@@ -146,12 +154,14 @@ class PhoneBackend
       serial, status, *details = line.strip.split
       next if serial.nil? || status.nil?
       fields = details.filter_map { |field| field.split(":", 2) if field.include?(":") }.to_h
-      {
+      device = {
         id: serial, name: fields["model"]&.tr("_", " ") || serial,
         platform: "Android", connected: status == "device", paired: true,
         transport: serial.include?(":") ? "Wi-Fi" : "USB",
         model: fields["model"], capabilities: android_capabilities(status == "device")
       }
+      remember_android_address(serial) if device.fetch(:connected) && serial.include?(":")
+      device
     end
     merge_mdns_devices(attached)
   end
@@ -254,6 +264,10 @@ class PhoneBackend
       candidate = File.join(path, program)
       File.respond_to?(:executable?) ? File.executable?(candidate) : File.file?(candidate)
     end
+  end
+
+  def remember_android_address(address)
+    File.open(@android_address_path, "w") { |file| file.write("#{address}\n") }
   end
 
   def process_alive?(pid)

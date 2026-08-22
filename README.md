@@ -33,13 +33,12 @@ Android 11 or newer and the Omarchy computer must be on the same Wi-Fi network.
 2. Tap **Pair device with pairing code**. Keep this popup open.
 3. In Omarchy Phone under **Connect Android**, enter the popup's complete temporary pairing address
    (`IP:port`) and its six-digit code, then click **Pair** before the code expires.
-4. Close the popup. Copy the separate **IP address and port** from the main Wireless debugging
-   screen into Step 2, then click **Connect**.
+4. Omarchy Phone detects the authorized Wi-Fi device and reconnects to its remembered address.
 5. When the phone appears, click **Open Phone** to start scrcpy and control it.
 
 Generate a new pairing popup if pairing reports that the code expired. Pairing establishes trust
-once. Android changes its connection port when Wireless debugging restarts, so reconnect with the
-current address shown on the main Wireless debugging screen.
+once. If Android changes its wireless connection port, pair again so the current service can be
+discovered and remembered.
 
 ## iPhone quick start
 

@@ -7,6 +7,7 @@ unless Object.const_defined?(:PhoneBackend)
 end
 
 backend = PhoneBackend.new
+last_auto_connect_at = 0
 
 OmarchyUI.plugin do
   state :devices, []
@@ -20,10 +21,15 @@ OmarchyUI.plugin do
   state :bitrate_mbps, 8
   state :pair_address, ""
   state :pair_code, ""
-  state :connect_address, ""
 
   refresh = proc do
     snapshot = backend.snapshot
+    if snapshot.fetch(:devices).none? { |device| device.fetch(:platform) == "Android" && device.fetch(:connected) } &&
+       !backend.last_android_address.empty? && Time.now.to_i - last_auto_connect_at >= 15
+      last_auto_connect_at = Time.now.to_i
+      backend.connect(backend.last_android_address)
+      snapshot = backend.snapshot
+    end
     transaction do
       state.devices = snapshot.fetch(:devices)
       state.backends = snapshot.fetch(:backends)
@@ -133,14 +139,15 @@ OmarchyUI.plugin do
       dynamic id: :android_setup, spacing: 8 do
         if state.devices.none? { |device| device.fetch(:platform) == "Android" && device.fetch(:connected) }
           section_header "Connect Android"
-          text "Step 1: tap Wireless debugging → Pair device with pairing code. Enter the temporary pairing address and six-digit code.",
+          text "Tap Wireless debugging → Pair device with pairing code, then enter the temporary address and code.",
                style: :caption, wrap: true
           row spacing: 8 do
             column spacing: 4 do
               text "Pairing IP and port", style: :caption
-              text_field "", id: :pair_address, placeholder: "192.168.1.20:37123" do |event|
+              address_field = text_field "", id: :pair_address, placeholder: "192.168.1.20:37123" do |event|
                 state.pair_address = event.fetch("value")
               end
+              bind(address_field, :text) { state.pair_address }
             end
             column spacing: 4 do
               text "Six-digit code from Android", style: :caption
@@ -153,7 +160,6 @@ OmarchyUI.plugin do
               button "Pair", id: :pair do
                 async do
                   result = backend.pair_android(state.pair_address, state.pair_code)
-                  state.connect_address = "#{state.pair_address.split(":", 2).first}:" if result.ok
                   notify_result.call(result)
                   refresh.call
                 end
@@ -161,21 +167,6 @@ OmarchyUI.plugin do
             end
           end
 
-          text "Step 2: close the pairing popup, then enter the different IP and port shown on the main Wireless debugging screen.",
-               style: :caption, wrap: true
-          row spacing: 8 do
-            connection_field = text_field "", id: :connect_address, placeholder: "192.168.1.20:38879" do |event|
-              state.connect_address = event.fetch("value")
-            end
-            bind(connection_field, :text) { state.connect_address }
-            button "Connect", id: :connect do
-              async do
-                result = backend.connect(state.connect_address)
-                notify_result.call(result)
-                refresh.call
-              end
-            end
-          end
         end
       end
 
