@@ -1,8 +1,21 @@
 # Omarchy Phone
 
+[![Marketplace submission](https://img.shields.io/badge/Omarchy%20Marketplace-submitted-2da44e)](https://github.com/HANCORE-linux/omarchy-plugin-marketplace/issues/1616)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 The first application built with [Omarchy UI](https://github.com/AdamMusa/omarchy-ui).
 It provides Android discovery, wireless pairing, scrcpy control, iPhone discovery, and AirPlay
 mirroring from an Omarchy bar widget and panel.
+
+## Features
+
+- Discover Android and iPhone devices automatically.
+- Pair Android 11+ devices using Wireless debugging.
+- Mirror and control Android through scrcpy, with audio, resolution, FPS, bitrate, fullscreen,
+  and physical-screen options.
+- Mirror iPhone video and audio through AirPlay with an on-screen PIN.
+- Show connection status and device-specific actions in the Omarchy bar and panel.
+- Run without Ruby, mruby, or the `omarchy-ui` gem installed on the destination computer.
 
 <p align="center">
   <img src="preview.png" alt="Android and iPhone mirrored side by side with Omarchy Phone" width="92%">
@@ -41,21 +54,30 @@ touch or keyboard input back to iOS, so iPhone sessions are view-only.
 
 ## Install
 
+Omarchy Phone is [submitted for inclusion in the Omarchy Plugin Marketplace](https://github.com/HANCORE-linux/omarchy-plugin-marketplace/issues/1616).
+Until the listing is approved, install directly from its public repository:
+
 ```bash
 omarchy plugin add https://github.com/AdamMusa/omarchy-phone.git --enable
 ```
 
 Review third-party plugin code before enabling it. Omarchy plugins run with your user account.
 
-The repository is self-contained: it includes the QML bridge and prebuilt x86-64 mruby runtime,
-so Ruby, mruby, and the `omarchy-ui` gem are not required on the destination computer.
+The repository is self-contained: it includes its QML bridge and prebuilt x86-64 mruby runtime.
+The current release supports x86-64 Linux systems running Omarchy with the Quickshell plugin host.
 
-## Optional system tools
+## Capabilities and system tools
 
-- `adb` for Android discovery, pairing, and network connections.
-- `scrcpy` for Android screen mirroring and keyboard/mouse control.
-- `libimobiledevice` for trusted USB iPhone discovery and pairing.
-- `uxplay` for iPhone AirPlay screen/audio mirroring.
+The plugin itself does not install system packages. Install only the tools needed for the features
+you plan to use:
+
+| Capability | Command used | Required tool |
+| --- | --- | --- |
+| Android discovery, pairing, and Wi-Fi connection | `adb` | Android platform tools |
+| Android mirroring and mouse/keyboard control | `scrcpy` | scrcpy |
+| Trusted USB iPhone discovery and pairing | `idevice_id`, `ideviceinfo`, `idevicepair` | libimobiledevice |
+| iPhone screen and audio mirroring | `uxplay` | UxPlay |
+| Wireless Android service discovery | `avahi-browse` | Avahi tools |
 
 Android supports remote control through scrcpy. AirPlay mirrors an iPhone but cannot send touch
 or keyboard input back to iOS.
@@ -102,6 +124,31 @@ panel and desktop notification. Active AirPlay sessions appear automatically in 
 omarchy plugin update izeesoft.omarchy-phone
 omarchy plugin remove izeesoft.omarchy-phone
 ```
+
+The plugin stores connection metadata and process logs in
+`~/.local/state/omarchy-phone-ruby`. Removing the plugin leaves this local state in place so a
+future installation can remember paired Android devices. Delete that directory manually if you
+also want to forget the saved state.
+
+## Privacy and permissions
+
+Omarchy Phone runs as the current user and starts only the local tools listed above. It communicates
+with phones through USB or the local network, does not provide telemetry, and does not send device
+information to an external service. Android pairing addresses and runtime logs remain in the local
+state directory. The bundled `omarchy-ui-runtime` is an x86-64 executable built from the
+[Omarchy UI source](https://github.com/AdamMusa/omarchy-ui).
+
+## Marketplace submission
+
+- Plugin ID: `izeesoft.omarchy-phone`
+- Category: Hardware
+- Kinds: service, bar widget, and panel
+- License: MIT
+- Submission: [HANCORE-linux/omarchy-plugin-marketplace#1616](https://github.com/HANCORE-linux/omarchy-plugin-marketplace/issues/1616)
+- Root preview: [`preview.png`](preview.png)
+
+The automated repository, manifest, README, license, and Quattro compatibility checks passed. The
+bundled runtime is disclosed for the marketplace's required manual executable review.
 
 ## Development
 
