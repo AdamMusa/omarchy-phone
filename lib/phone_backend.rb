@@ -68,11 +68,7 @@ class PhoneBackend
     if !result.ok && result.message.include?("protocol fault")
       Result.new(ok: false, message: "Pairing failed. Open a new pairing-code popup and retry before the code expires.")
     elsif result.ok
-      connection = discover_android_connection(address.split(":", 2).first)
-      return Result.new(ok: true, message: "Paired. Android will connect automatically when Wireless debugging is available.") unless connection
-
-      connected = connect(connection)
-      Result.new(ok: connected.ok, message: connected.ok ? "Paired and connected to #{connection}" : connected.message)
+      Result.new(ok: true, message: "Paired. Now connect with the IP and port on the main Wireless debugging screen.")
     else
       result
     end
@@ -122,19 +118,6 @@ class PhoneBackend
 
   def decimal_string?(value)
     !value.empty? && value.each_byte.all? { |byte| byte >= 48 && byte <= 57 }
-  end
-
-  def discover_android_connection(phone_ip)
-    result = command(["avahi-browse", "-rtp", "_adb-tls-connect._tcp"], timeout: 8)
-    return nil unless result&.success?
-
-    result.stdout.each_line do |line|
-      fields = line.strip.split(";")
-      next unless fields[0] == "=" && fields[4] == "_adb-tls-connect._tcp"
-      next unless fields[7] == phone_ip && fields[8].to_i.positive?
-      return "#{fields[7]}:#{fields[8]}"
-    end
-    nil
   end
 
   def load_airplay_pid
