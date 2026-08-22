@@ -29,10 +29,7 @@ OmarchyUI.plugin do
     end
     if !connected_android && Time.now.to_i - last_auto_connect_at >= 15
       last_auto_connect_at = Time.now.to_i
-      available_android = snapshot.fetch(:devices).find do |device|
-        device.fetch(:platform) == "Android" && !device.fetch(:connected)
-      end
-      address = available_android ? available_android.fetch(:id) : backend.last_android_address
+      address = backend.last_android_address
       unless address.empty?
         backend.connect(address)
         snapshot = backend.snapshot

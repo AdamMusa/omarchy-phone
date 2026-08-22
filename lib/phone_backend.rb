@@ -12,6 +12,7 @@ class PhoneBackend
     @action_lock = Mutex.new
     @airplay_pid_path = File.join(@state_dir, "uxplay.pid")
     @android_address_path = File.join(@state_dir, "android-address")
+    @android_pair_path = File.join(@state_dir, "android-paired-ip")
     @airplay_pid = nil
     if Object.const_defined?(:FileUtils)
       FileUtils.mkdir_p(@state_dir)
@@ -54,6 +55,8 @@ class PhoneBackend
 
   def connect(device_id)
     address = device_id.to_s.strip
+    address = discover_android_connection(address) if android_ip?(address)
+    return Result.new(ok: false, message: "Connection port is not available yet. Keep Wireless debugging enabled and retry.") unless address
     return Result.new(ok: false, message: "Enter the IP and connection port shown on Wireless debugging") unless android_endpoint?(address)
     command(["adb", "disconnect", address], timeout: 5)
     result = action(["adb", "connect", address], "Connected to #{address}")
@@ -66,7 +69,11 @@ class PhoneBackend
     File.file?(@android_address_path) ? File.read(@android_address_path).strip : ""
   end
   def disconnect(device_id) = action(["adb", "disconnect", device_id.to_s], "Disconnected #{device_id}")
-  def forget(device_id) = disconnect(device_id)
+  def forget(device_id)
+    result = disconnect(device_id)
+    File.delete(@android_pair_path) if File.file?(@android_pair_path)
+    result
+  end
   def pair_android(address, code)
     address = address.to_s.strip
     code = code.to_s.strip
@@ -77,7 +84,8 @@ class PhoneBackend
     if !result.ok && result.message.include?("protocol fault")
       Result.new(ok: false, message: "Pairing failed. Open a new pairing-code popup and retry before the code expires.")
     elsif result.ok
-      Result.new(ok: true, message: "Pairing complete. Replace the port with the main Wireless debugging port, then connect.")
+      remember_android_pair(address.split(":", 2).first)
+      Result.new(ok: true, message: "Pairing complete. Select the paired phone, then Connect when its service is available.")
     else
       result
     end
@@ -125,6 +133,22 @@ class PhoneBackend
     decimal_string?(address[1]) && address[1].to_i.between?(1, 65_535)
   end
 
+  def android_ip?(value)
+    octets = value.split(".")
+    octets.length == 4 && octets.all? { |octet| decimal_string?(octet) && octet.to_i <= 255 }
+  end
+
+  def discover_android_connection(phone_ip)
+    result = command(["avahi-browse", "-rtp", "_adb-tls-connect._tcp"], timeout: 8)
+    return nil unless result&.success?
+    result.stdout.each_line do |line|
+      fields = line.strip.split(";")
+      next unless fields[0] == "=" && fields[4] == "_adb-tls-connect._tcp"
+      return "#{fields[7]}:#{fields[8]}" if fields[7] == phone_ip && fields[8].to_i.positive?
+    end
+    nil
+  end
+
   def decimal_string?(value)
     !value.empty? && value.each_byte.all? { |byte| byte >= 48 && byte <= 57 }
   end
@@ -164,7 +188,7 @@ class PhoneBackend
       remember_android_address(serial) if device.fetch(:connected) && serial.include?(":")
       device
     end
-    merge_mdns_devices(attached)
+    merge_paired_android(merge_mdns_devices(attached))
   end
 
   def ios_devices
@@ -219,6 +243,16 @@ class PhoneBackend
     known.values
   end
 
+  def merge_paired_android(devices)
+    return devices unless File.file?(@android_pair_path)
+    phone_ip = File.read(@android_pair_path).strip
+    return devices if phone_ip.empty? || devices.any? { |device| device.fetch(:id).start_with?("#{phone_ip}:") }
+    devices + [{
+      id: phone_ip, name: "Paired Android", platform: "Android", connected: false,
+      paired: true, transport: "Wi-Fi", model: nil, capabilities: android_capabilities(false)
+    }]
+  end
+
   def android_capabilities(connected)
     state = connected ? "available" : "unavailable"
     { mirror: state, control: state, audio: state, files: state }
@@ -269,6 +303,10 @@ class PhoneBackend
 
   def remember_android_address(address)
     File.open(@android_address_path, "w") { |file| file.write("#{address}\n") }
+  end
+
+  def remember_android_pair(phone_ip)
+    File.open(@android_pair_path, "w") { |file| file.write("#{phone_ip}\n") }
   end
 
   def process_alive?(pid)
