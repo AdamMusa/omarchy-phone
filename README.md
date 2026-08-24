@@ -127,9 +127,13 @@ Omarchy Phone runs as the current user and starts only the local tools listed ab
 with phones through USB or the local network, does not provide telemetry, and does not send device
 information to an external service. Android pairing addresses and runtime logs remain in the local
 state directory. The bundled `omarchy-ui-runtime` is an x86-64 executable built from the
-[Omarchy UI source](https://github.com/AdamMusa/omarchy-ui). Its exact source revision, pinned mruby
-revision, rebuild procedure, and digest are recorded in [`RUNTIME_PROVENANCE.md`](RUNTIME_PROVENANCE.md)
-and [`omarchy-ui-runtime.sha256`](omarchy-ui-runtime.sha256).
+[Omarchy UI source](https://github.com/AdamMusa/omarchy-ui). It is byte-for-byte the
+[`runtime-v0.1.0` release artifact](https://github.com/AdamMusa/omarchy-ui/releases/tag/runtime-v0.1.0),
+whose digest is bound to the reviewed source revision by a
+[GitHub artifact attestation](https://github.com/AdamMusa/omarchy-ui/attestations/42660584).
+The exact inputs, remote build, independent verification commands, and digest are recorded in
+[`RUNTIME_PROVENANCE.md`](RUNTIME_PROVENANCE.md) and
+[`omarchy-ui-runtime.sha256`](omarchy-ui-runtime.sha256).
 
 Command output is limited before it reaches application state, discovery results have item and
 string ceilings, and runtime protocol messages are size-bounded before QML buffering. External

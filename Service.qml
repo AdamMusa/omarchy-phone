@@ -10,6 +10,7 @@ Item {
   readonly property string pluginDir: manifest && manifest.__sourceDir
     ? String(manifest.__sourceDir)
     : ""
+  readonly property string projectDir: pluginDir
   readonly property string rubyProgram: pluginDir + "/main.rb"
   property string program: ""
   readonly property string effectiveRubyProgram: program !== "" ? program : rubyProgram
@@ -31,6 +32,15 @@ Item {
   property var allowedProperties: ({})
 
   signal effectReceived(string name, var payload)
+
+  function reportComponentError(surfaceName, controlId, componentType, code, message) {
+    var location = String(surfaceName || "") + "/" + String(controlId || "")
+    var detail = String(componentType || "component") + " error at " + location
+    if (code) detail += " [" + String(code) + "]"
+    if (message) detail += ": " + String(message)
+    lastError = detail.slice(0, 512)
+    console.warn("omarchy-ui component:", lastError)
+  }
 
   function validId(value) {
     return typeof value === "string"
@@ -178,6 +188,37 @@ Item {
   }
 
   function applyPatch(message) {
+    if (message.op === "batch") {
+      if (!Array.isArray(message.patches) || message.patches.length === 0
+          || message.patches.length > maxCollectionItems)
+        return reject("invalid patch batch")
+
+      for (var batchIndex = 0; batchIndex < message.patches.length; batchIndex++) {
+        var batchPatch = message.patches[batchIndex]
+        if (!plainObject(batchPatch) || batchPatch.op !== "set" || !validId(batchPatch.id)
+            || typeof batchPatch.property !== "string")
+          return reject("invalid patch batch")
+        var batchNode = nodeIndex[batchPatch.id]
+        if (!batchNode || !allowedProperties[batchNode.type][batchPatch.property]
+            || !boundedValue(batchPatch.value, 0))
+          return reject("patch batch target rejected")
+        if (batchPatch.animation !== undefined && !validAnimation(batchPatch.animation))
+          return reject("patch batch animation rejected")
+      }
+
+      for (var applyIndex = 0; applyIndex < message.patches.length; applyIndex++) {
+        var validatedPatch = message.patches[applyIndex]
+        if (!applyPatch({
+          op: "set",
+          id: validatedPatch.id,
+          property: validatedPatch.property,
+          value: validatedPatch.value,
+          animation: validatedPatch.animation
+        })) return false
+      }
+      return true
+    }
+
     if (!validId(message.id))
       return reject("invalid patch")
     var node = nodeIndex[message.id]
@@ -276,6 +317,7 @@ Item {
     nextIndex[node.id] = replacement
     nodeIndex = nextIndex
     revision += 1
+    return true
   }
 
   function validAnimation(animation) {
@@ -355,7 +397,7 @@ Item {
 
   function componentSource(typeName) {
     var definition = componentDefinitions[String(typeName || "")]
-    return definition ? pluginDir + "/Components/" + definition.qml : ""
+    return definition ? pluginDir + "/Components/Builtins/" + definition.qml : ""
   }
 
   function componentDefinition(typeName) {
