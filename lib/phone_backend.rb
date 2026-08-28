@@ -31,7 +31,7 @@ class PhoneBackend
 
   def open(device, options = {})
     return start_airplay(fullscreen: options[:fullscreen] || options["fullscreen"]) if device["platform"] == "iOS"
-    argv = ["scrcpy", "--serial", device.fetch("id").to_s, "--keyboard=uhid"]
+    argv = ["scrcpy", "--serial", device.fetch("id").to_s, "--keyboard=uhid", "--mouse=uhid"]
     argv << "--fullscreen" if truthy?(options, :fullscreen)
     argv << "--turn-screen-off" if truthy?(options, :screen_off)
     argv << "--no-audio" unless options.fetch(:audio, options.fetch("audio", true))

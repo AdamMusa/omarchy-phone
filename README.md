@@ -85,6 +85,29 @@ Android 11 or newer and the Omarchy computer must be on the same Wi-Fi network.
 5. Click **Connect** on the paired phone; Omarchy Phone resolves the current wireless service.
 6. When it becomes connected, click **Open Phone** to start scrcpy and control it.
 
+### If the screen mirrors but you cannot control it
+
+Some vendor Android builds refuse the `INJECT_EVENTS` permission that scrcpy's default `sdk`
+input mode relies on, and report this in the scrcpy log:
+
+```
+[server] ERROR: Injecting input events requires the caller ... to have the INJECT_EVENTS permission.
+[server] ERROR: Make sure you have enabled "USB debugging (Security Settings)" and then rebooted your device.
+```
+
+The screen mirrors correctly but clicks and keystrokes are ignored. This has been reported on
+Xiaomi and POCO (HyperOS and MIUI), Oppo, and some Samsung devices. The suggested
+`USB debugging (Security settings)` toggle needs a vendor account and a SIM, and on some ROMs it
+is not present at all.
+
+Omarchy Phone therefore starts scrcpy with `--mouse=uhid` alongside `--keyboard=uhid`, which
+simulates a physical HID device instead of asking Android to inject events, so control works
+without that permission. One side effect worth knowing: in `uhid` mode scrcpy captures the
+pointer, so press `LAlt` or `LSuper` to give the mouse back to the computer.
+
+On a device that blocks injection you may still see one `INJECT_EVENTS` line at startup, from
+scrcpy's attempt to wake the screen. It is harmless and the session works normally.
+
 Generate a new pairing popup if pairing reports that the code expired. Pairing establishes trust
 once. If Android changes its wireless connection port, pair again so the current service can be
 discovered and remembered.
