@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "json"
+require "digest"
 require "thread"
 
 require "minitest/autorun"
@@ -14,6 +15,28 @@ end
 require_relative "../lib/phone_backend"
 
 class PhoneBackendTest < Minitest::Test
+  ROOT = File.expand_path("..", __dir__)
+
+  def test_bundled_runtime_matches_declared_digest
+    checksum, filename = File.read(File.join(ROOT, "omarchy-ui-runtime.sha256")).split
+
+    assert_equal "omarchy-ui-runtime", filename
+    assert_equal checksum, Digest::SHA256.file(File.join(ROOT, filename)).hexdigest
+  end
+
+  def test_qml_bridge_is_compiled_and_checksummed
+    report = JSON.parse(File.read(File.join(ROOT, "omarchy-ui-qml-bundle.json")))
+    checksum = File.read(File.join(ROOT, "omarchy-ui-qml-bundle.sha256"))
+
+    assert_equal "qt-aot-qml-module", report.fetch("format")
+    assert_equal %w[App.qml BarWidget.qml Panel.qml Service.qml], report.fetch("entry_shims").sort
+    report.fetch("artifacts").each do |artifact|
+      path = File.join(ROOT, artifact.fetch("path"))
+      assert_equal artifact.fetch("sha256"), Digest::SHA256.file(path).hexdigest
+      assert_includes checksum, artifact.fetch("sha256")
+    end
+  end
+
   def test_discovery_lines_have_item_and_line_limits
     backend = PhoneBackend.allocate
     lines = backend.send(:bounded_lines, ("x" * 2048 + "\n") * 100)

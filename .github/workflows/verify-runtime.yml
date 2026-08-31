@@ -1,0 +1,53 @@
+name: Verify attested runtime
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-runtime:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out plugin source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Verify committed checksum
+        run: sha256sum --check omarchy-ui-runtime.sha256
+
+      - name: Verify GitHub artifact attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh attestation verify omarchy-ui-runtime --repo AdamMusa/omarchy-ui
+
+      - name: Compare with immutable Omarchy UI release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/runtime-release"
+          gh release download runtime-v0.1.4 \
+            --repo AdamMusa/omarchy-ui \
+            --pattern omarchy-ui-runtime \
+            --dir "$RUNNER_TEMP/runtime-release"
+          cmp omarchy-ui-runtime "$RUNNER_TEMP/runtime-release/omarchy-ui-runtime"
+
+      - name: Check Ruby and backend behavior
+        run: |
+          for ruby_file in main.rb config.rb lib/*.rb; do ruby -c "$ruby_file"; done
+          for test_file in test/*_test.rb; do ruby "$test_file"; done
+
+      - name: Verify compiled QML package
+        run: |
+          sha256sum --check omarchy-ui-qml-bundle.sha256
+          test ! -e ControlNode.qml
+          test ! -d Components
+          test "$(find . -maxdepth 1 -name '*.qml' | wc -l)" -eq 4
+          jq -e '.format == "qt-aot-qml-module" and .format_version == 1 and (.artifacts | length == 2)' omarchy-ui-qml-bundle.json
+
+      - name: Check manifest contract
+        run: jq -e '.schemaVersion == 1 and .version == "0.2.3" and (.kinds | length == 3)' manifest.json
