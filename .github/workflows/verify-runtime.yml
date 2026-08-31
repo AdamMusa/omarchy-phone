@@ -46,7 +46,7 @@ jobs:
           sha256sum --check omarchy-ui-qml-bundle.sha256
           test ! -e ControlNode.qml
           test ! -d Components
-          test "$(find . -maxdepth 1 -name '*.qml' | wc -l)" -eq 4
+          test "$(find . -maxdepth 1 -name '*.qml' | wc -l)" -eq 3
           jq -e '.format == "qt-aot-qml-module" and .format_version == 1 and (.artifacts | length == 2)' omarchy-ui-qml-bundle.json
 
       - name: Check manifest contract

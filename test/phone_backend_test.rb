@@ -29,7 +29,7 @@ class PhoneBackendTest < Minitest::Test
     checksum = File.read(File.join(ROOT, "omarchy-ui-qml-bundle.sha256"))
 
     assert_equal "qt-aot-qml-module", report.fetch("format")
-    assert_equal %w[App.qml BarWidget.qml Panel.qml Service.qml], report.fetch("entry_shims").sort
+    assert_equal %w[BarWidget.qml Panel.qml Service.qml], report.fetch("entry_shims").sort
     report.fetch("artifacts").each do |artifact|
       path = File.join(ROOT, artifact.fetch("path"))
       assert_equal artifact.fetch("sha256"), Digest::SHA256.file(path).hexdigest

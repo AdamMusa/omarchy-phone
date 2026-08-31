@@ -19,6 +19,6 @@ Verify the packaged libraries from the plugin directory:
 sha256sum --check omarchy-ui-qml-bundle.sha256
 ```
 
-`App.qml`, `Service.qml`, `Panel.qml`, and `BarWidget.qml` are the minimal loader shims
-required by Omarchy's file-based entry-point contract. Application UI lives in the compiled
+`Service.qml`, `Panel.qml`, and `BarWidget.qml` are the minimal loader shims required for the
+plugin kinds declared in `manifest.json`. Application UI lives in the compiled
 module recorded by `omarchy-ui-qml-bundle.json`.
