@@ -1,0 +1,54 @@
+module OmarchyUI.Bundles.B68231fff638e32d55470
+linktarget omarchy_ui_bundle_b68231fff638e32d55470plugin
+optional plugin omarchy_ui_bundle_b68231fff638e32d55470plugin
+classname OmarchyUI_Bundles_B68231fff638e32d55470Plugin
+typeinfo omarchy_ui_bundle_b68231fff638e32d55470.qmltypes
+prefer :/qt/qml/OmarchyUI/Bundles/B68231fff638e32d55470/
+App 1.0 App.qml
+BarWidget 1.0 BarWidget.qml
+Action 1.0 Components/Builtins/Action.qml
+ActionButton 1.0 Components/Builtins/ActionButton.qml
+Button 1.0 Components/Builtins/Button.qml
+Column 1.0 Components/Builtins/Column.qml
+Container 1.0 Components/Builtins/Container.qml
+Icon 1.0 Components/Builtins/Icon.qml
+NumberField 1.0 Components/Builtins/NumberField.qml
+Row 1.0 Components/Builtins/Row.qml
+Scroll 1.0 Components/Builtins/Scroll.qml
+Separator 1.0 Components/Builtins/Separator.qml
+Text 1.0 Components/Builtins/Text.qml
+TextField 1.0 Components/Builtins/TextField.qml
+Toggle 1.0 Components/Builtins/Toggle.qml
+ControlNode 1.0 ControlNode.qml
+BarIconButton 1.0 Controls/BarIconButton.qml
+BarIndicator 1.0 Controls/BarIndicator.qml
+BorderOverlay 1.0 Controls/BorderOverlay.qml
+BorderSurface 1.0 Controls/BorderSurface.qml
+Button 1.0 Controls/Button.qml
+ButtonGroup 1.0 Controls/ButtonGroup.qml
+ConfirmDialog 1.0 Controls/ConfirmDialog.qml
+CursorSurface 1.0 Controls/CursorSurface.qml
+Dropdown 1.0 Controls/Dropdown.qml
+MultiSelect 1.0 Controls/MultiSelect.qml
+NumberField 1.0 Controls/NumberField.qml
+OpticalGlyph 1.0 Controls/OpticalGlyph.qml
+PanelActionButton 1.0 Controls/PanelActionButton.qml
+PanelHero 1.0 Controls/PanelHero.qml
+PanelKeyCatcher 1.0 Controls/PanelKeyCatcher.qml
+PanelSectionHeader 1.0 Controls/PanelSectionHeader.qml
+PanelSeparator 1.0 Controls/PanelSeparator.qml
+PanelSlider 1.0 Controls/PanelSlider.qml
+PanelToolTip 1.0 Controls/PanelToolTip.qml
+SearchableDropdown 1.0 Controls/SearchableDropdown.qml
+TextField 1.0 Controls/TextField.qml
+Toggle 1.0 Controls/Toggle.qml
+ToggleSwitch 1.0 Controls/ToggleSwitch.qml
+WidgetButton 1.0 Controls/WidgetButton.qml
+Panel 1.0 Panel.qml
+Service 1.0 Service.qml
+Border 1.0 Theme/Border.qml
+Color 1.0 Theme/Color.qml
+Fonts 1.0 Theme/Fonts.qml
+Style 1.0 Theme/Style.qml
+Util 1.0 Theme/Util.qml
+depends QtQuick

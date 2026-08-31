@@ -6,7 +6,11 @@
   "author": "Adam Moussa Ali",
   "license": "MIT",
   "description": "Ruby-powered Android control and iPhone AirPlay mirroring for Omarchy.",
-  "kinds": ["service", "bar-widget", "panel"],
+  "kinds": [
+    "service",
+    "bar-widget",
+    "panel"
+  ],
   "keepLoaded": true,
   "entryPoints": {
     "service": "Service.qml",
