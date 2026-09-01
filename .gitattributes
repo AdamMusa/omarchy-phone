@@ -1,6 +1,0 @@
-# The interface is authored in Ruby; Omarchy UI generates these runtime artifacts.
-*.qml linguist-generated=true
-OmarchyUI/** linguist-generated=true
-*.so binary
-omarchy-ui-runtime binary
-*.png binary

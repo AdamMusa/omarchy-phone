@@ -7,29 +7,6 @@ The first application built with [Omarchy UI](https://github.com/AdamMusa/omarch
 It provides Android discovery, wireless pairing, scrcpy control, iPhone discovery, and AirPlay
 mirroring from an Omarchy bar widget and panel.
 
-## App menu
-
-<p align="center">
-  <img src="docs/images/app-menu-full.png" alt="Omarchy Phone menu with Android and iPhone connected" width="47%">
-  <img src="docs/images/app-menu-connected.png" alt="Omarchy Phone connected-device controls" width="47%">
-</p>
-
-Connected Android and iPhone devices appear automatically in one menu. The available actions and
-capabilities are shown per device, including Android control and iPhone AirPlay status.
-
-## Android and iOS previews
-
-<table>
-  <tr>
-    <th width="50%">Android preview</th>
-    <th width="50%">iOS preview</th>
-  </tr>
-  <tr>
-    <td><img src="docs/images/android-apps.png" alt="Android application drawer controlled with Omarchy Phone"></td>
-    <td><img src="docs/images/iphone-airplay.png" alt="iPhone mirrored over AirPlay with Omarchy Phone"></td>
-  </tr>
-</table>
-
 Android sessions support mouse and keyboard control through scrcpy. iPhone sessions mirror video
 and audio through AirPlay; Apple does not permit remote touch or keyboard input through AirPlay.
 
@@ -149,14 +126,8 @@ also want to forget the saved state.
 Omarchy Phone runs as the current user and starts only the local tools listed above. It communicates
 with phones through USB or the local network, does not provide telemetry, and does not send device
 information to an external service. Android pairing addresses and runtime logs remain in the local
-state directory. The bundled `omarchy-ui-runtime` is an x86-64 executable built from the
-[Omarchy UI source](https://github.com/AdamMusa/omarchy-ui). It is byte-for-byte the
-[`runtime-v0.1.4` release artifact](https://github.com/AdamMusa/omarchy-ui/releases/tag/runtime-v0.1.4),
-whose digest is bound to the reviewed source revision by a
-[GitHub artifact attestation](https://github.com/AdamMusa/omarchy-ui/attestations/43928397).
-The exact inputs, remote build, independent verification commands, and digest are recorded in
-[`RUNTIME_PROVENANCE.md`](RUNTIME_PROVENANCE.md) and
-[`omarchy-ui-runtime.sha256`](omarchy-ui-runtime.sha256).
+state directory. The bundled `omarchy-ui-runtime` is the x86-64
+[`runtime-v0.1.4` release artifact](https://github.com/AdamMusa/omarchy-ui/releases/tag/runtime-v0.1.4).
 
 Command output is limited before it reaches application state, discovery results have item and
 string ceilings, and runtime protocol messages are size-bounded before QML buffering. External
@@ -175,21 +146,6 @@ or non-regular state records are cleared without signaling a process.
 
 The automated repository, manifest, README, license, and Quattro compatibility checks passed. The
 bundled runtime is disclosed for the marketplace's required manual executable review.
-
-## Development
-
-Application behavior lives in `main.rb` and `lib/phone_backend.rb`. QML bridge files and
-`omarchy-ui-runtime` are generated distribution artifacts owned by Omarchy UI; do not edit them
-inside this project.
-
-Build and validate the complete plugin before publishing:
-
-```bash
-sha256sum -c omarchy-ui-runtime.sha256
-ruby test/phone_backend_test.rb
-omarchy_ui bundle
-omarchy plugin validate dist/omarchy-phone-plugin
-```
 
 ## License
 
