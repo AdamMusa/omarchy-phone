@@ -37,6 +37,33 @@ class PhoneBackendTest < Minitest::Test
     end
   end
 
+  def test_bundled_entrypoint_contains_current_backend_source
+    backend_source = File.read(File.join(ROOT, "lib", "phone_backend.rb"))
+    bundled_entrypoint = File.read(File.join(ROOT, "main.rb"))
+
+    assert_includes bundled_entrypoint, backend_source
+  end
+
+  def test_android_open_uses_uhid_keyboard_and_mouse
+    backend = PhoneBackend.allocate
+    launched = nil
+    backend.define_singleton_method(:spawn_gui) do |argv, name|
+      launched = [argv, name]
+      PhoneBackend::Result.new(ok: true, message: "Opened phone")
+    end
+
+    result = backend.open(
+      { "platform" => "Android", "id" => "example-device" },
+      audio: true, max_size: 0, max_fps: 0, bitrate_mbps: 0
+    )
+
+    assert result.ok
+    assert_equal "scrcpy", launched.fetch(0).first
+    assert_equal "scrcpy", launched.fetch(1)
+    assert_includes launched.fetch(0), "--keyboard=uhid"
+    assert_includes launched.fetch(0), "--mouse=uhid"
+  end
+
   def test_discovery_lines_have_item_and_line_limits
     backend = PhoneBackend.allocate
     lines = backend.send(:bounded_lines, ("x" * 2048 + "\n") * 100)

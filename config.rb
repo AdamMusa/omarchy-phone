@@ -5,7 +5,7 @@ OmarchyUI.configure do
   id "izeesoft.omarchy-phone"
   name "Omarchy Phone"
   slug "omarchy-phone"
-  version "0.2.3"
+  version "0.2.4"
   author "Adam Moussa Ali"
   license "MIT"
   description "Ruby-powered Android control and iPhone AirPlay mirroring for Omarchy."

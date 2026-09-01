@@ -40,6 +40,7 @@ jobs:
         run: |
           for ruby_file in main.rb config.rb lib/*.rb; do ruby -c "$ruby_file"; done
           for test_file in test/*_test.rb; do ruby "$test_file"; done
+          ./omarchy-ui-runtime test/runtime_api_check.rb
 
       - name: Verify compiled QML package
         run: |
@@ -50,4 +51,72 @@ jobs:
           jq -e '.format == "qt-aot-qml-module" and .format_version == 1 and (.artifacts | length == 2)' omarchy-ui-qml-bundle.json
 
       - name: Check manifest contract
-        run: jq -e '.schemaVersion == 1 and .version == "0.2.3" and (.kinds | length == 3)' manifest.json
+        run: jq -e '.schemaVersion == 1 and .version == "0.2.4" and (.kinds | length == 3)' manifest.json
+
+  release:
+    name: Tag plugin release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify-runtime
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out verified plugin source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+
+      - name: Detect a version release
+        id: release
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          version="$(jq -er '.version | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' manifest.json)"
+          config_version="$(sed -nE 's/^  version "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' config.rb)"
+          [[ "$config_version" == "$version" ]] || {
+            echo "manifest.json and config.rb versions differ" >&2
+            exit 1
+          }
+
+          if [[ "$BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            changed=true
+          else
+            previous_version="$(git show "$BEFORE_SHA:manifest.json" 2>/dev/null | jq -r '.version // empty' || true)"
+            [[ "$previous_version" == "$version" ]] && changed=false || changed=true
+          fi
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "name=$(jq -r '.name' manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Create version tag
+        if: steps.release.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git rev-parse --verify --quiet "refs/tags/$TAG"; then
+            target="$(git rev-list -n 1 "$TAG")"
+            [[ "$target" == "$GITHUB_SHA" ]] || {
+              echo "$TAG already points to $target; bump the plugin version" >&2
+              exit 1
+            }
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag --annotate "$TAG" --message "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub release
+        if: steps.release.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          PLUGIN_NAME: ${{ steps.release.outputs.name }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" >/dev/null 2>&1 ||
+            gh release create "$TAG" --verify-tag --generate-notes --title "$PLUGIN_NAME $TAG"

@@ -303,7 +303,7 @@ class PhoneBackend
   end
 
   def spawn_detached(argv, name)
-    OmarchyUI.spawn_detached(argv, File.join(@state_dir, "#{name}.log"))
+    Zui.spawn_detached(argv, File.join(@state_dir, "#{name}.log"))
   end
 
   def available?(program)
