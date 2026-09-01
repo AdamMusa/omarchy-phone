@@ -10,6 +10,13 @@ mirroring from an Omarchy bar widget and panel.
 Android sessions support mouse and keyboard control through scrcpy. iPhone sessions mirror video
 and audio through AirPlay; Apple does not permit remote touch or keyboard input through AirPlay.
 
+## Built entirely in Ruby
+
+All application behavior, system integration, and UI declarations are authored in
+Ruby. There is no handwritten QML source. Omarchy UI compiles the Ruby-declared UI
+into `OmarchyUI/Bundles/` and emits the tiny root QML loader shims required by the
+plugin manifest; those shims are generated packaging output.
+
 ## Features
 
 - Discover Android and iPhone devices automatically.
