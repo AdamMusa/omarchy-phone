@@ -10,6 +10,7 @@ class PhoneBackend
   COMMAND_OUTPUT_LIMIT = 65_536
   MAX_DISCOVERY_ITEMS = 64
   MAX_EXTERNAL_STRING = 256
+  MAX_STATE_BYTES = 4096
 
   def initialize(state_dir: File.expand_path("~/.local/state/omarchy-phone-ruby"))
     @state_dir = state_dir
@@ -72,7 +73,7 @@ class PhoneBackend
     result
   end
   def last_android_address
-    File.file?(@android_address_path) ? File.read(@android_address_path).strip : ""
+    safe_read(@android_address_path).to_s.strip
   end
   def disconnect(device_id) = action(["adb", "disconnect", device_id.to_s], "Disconnected #{device_id}")
   def forget(device_id)
@@ -137,8 +138,51 @@ class PhoneBackend
       next if part.empty?
 
       current = File.join(current, part)
-      Dir.mkdir(current) unless File.directory?(current)
+      begin
+        Dir.mkdir(current, 0o700)
+      rescue Errno::EEXIST
+        nil
+      end
+      raise "unsafe state directory" unless File.directory?(current) && !symlink_path?(current)
     end
+    expanded = File.expand_path(path)
+    raise "unsafe state directory" unless File.realpath(path) == expanded
+    File.chmod(0o700, expanded)
+  end
+
+  def safe_read(path, limit = MAX_STATE_BYTES)
+    flags = File::RDONLY | File::NOFOLLOW | File::BINARY
+    File.open(path, flags) do |file|
+      data = file.read(limit + 1)
+      return nil if data && data.bytesize > limit
+      data
+    end
+  rescue SystemCallError
+    nil
+  end
+
+  def secure_atomic_write(path, payload)
+    flags = File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW
+    temporary = nil
+    10.times do
+      candidate = "#{path}.tmp-#{Process.pid}-#{rand(1_000_000)}"
+      begin
+        File.open(candidate, flags, 0o600) do |file|
+          file.write(payload)
+          file.flush
+          file.fsync if file.respond_to?(:fsync)
+        end
+        temporary = candidate
+        break
+      rescue Errno::EEXIST
+        next
+      end
+    end
+    raise "could not allocate private state file" unless temporary
+    File.rename(temporary, path)
+    File.chmod(0o600, path)
+  ensure
+    File.delete(temporary) if temporary && File.file?(temporary)
   end
 
   def android_endpoint?(value)
@@ -170,11 +214,12 @@ class PhoneBackend
   end
 
   def load_airplay_pid
-    unless safe_regular_file?(@airplay_pid_path)
-      clear_airplay_pid if File.exist?(@airplay_pid_path) || symlink_path?(@airplay_pid_path)
+    data = safe_read(@airplay_pid_path, 256)
+    unless data
+      clear_airplay_pid if symlink_path?(@airplay_pid_path)
       return nil
     end
-    fields = File.read(@airplay_pid_path, 256).split("\n")
+    fields = data.split("\n")
     pid = Integer(fields[0])
     saved_identity = { "start_time" => fields[1].to_s, "command" => fields[2].to_s }
     return pid if valid_airplay_identity?(pid, saved_identity)
@@ -269,9 +314,9 @@ class PhoneBackend
   end
 
   def merge_paired_android(devices)
-    return devices unless File.file?(@android_pair_path)
-    phone_ip = File.read(@android_pair_path).strip
-    return devices if phone_ip.empty? || devices.any? { |device| device.fetch(:id).start_with?("#{phone_ip}:") }
+    phone_ip = safe_read(@android_pair_path).to_s.strip
+    return devices if phone_ip.empty?
+    return devices if devices.any? { |device| device.fetch(:id).start_with?("#{phone_ip}:") }
     devices + [{
       id: phone_ip, name: "Paired Android", platform: "Android", connected: false,
       paired: true, transport: "Wi-Fi", model: nil, capabilities: android_capabilities(false)
@@ -319,11 +364,11 @@ class PhoneBackend
   end
 
   def remember_android_address(address)
-    File.open(@android_address_path, "w") { |file| file.write("#{address}\n") }
+    secure_atomic_write(@android_address_path, "#{address}\n")
   end
 
   def remember_android_pair(phone_ip)
-    File.open(@android_pair_path, "w") { |file| file.write("#{phone_ip}\n") }
+    secure_atomic_write(@android_pair_path, "#{phone_ip}\n")
   end
 
   def write_airplay_identity(pid)
@@ -334,14 +379,7 @@ class PhoneBackend
       sleep(0.01)
     end
     raise "could not verify spawned UxPlay process" unless valid_airplay_identity?(pid, identity)
-    raise "unsafe AirPlay state path" if File.exist?(@airplay_pid_path) && !safe_regular_file?(@airplay_pid_path)
-    temporary = "#{@airplay_pid_path}.tmp-#{Process.pid}-#{rand(1_000_000)}"
-    File.open(temporary, "w", 0o600) do |file|
-      file.write("#{pid}\n#{identity.fetch("start_time")}\nuxplay\n")
-    end
-    File.rename(temporary, @airplay_pid_path)
-  ensure
-    File.delete(temporary) if temporary && File.file?(temporary)
+    secure_atomic_write(@airplay_pid_path, "#{pid}\n#{identity.fetch("start_time")}\nuxplay\n")
   end
 
   def owned_airplay_process?(pid)
